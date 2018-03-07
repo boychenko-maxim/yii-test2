@@ -24,4 +24,16 @@ class Book extends CActiveRecord
             'authors' => array(self::MANY_MANY, 'Author', 'booksauthors(booksid, authorsid)'),
         );
     }
+
+    public static function getbooksWithMinAuthors($minAuthors)
+    {
+        return Yii::app()->db->createCommand()
+            ->select('books.name')
+            ->from('books')
+            ->join('booksauthors', 'books.id = booksauthors.booksid')
+            ->group('books.name')
+            ->having("count(books.name) >= {$minAuthors}")
+            ->query()
+            ->readAll();
+    }
 }
