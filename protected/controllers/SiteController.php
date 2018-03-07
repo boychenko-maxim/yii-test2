@@ -13,16 +13,8 @@ class SiteController extends CController
             // получаем данные от пользователя
             $simpleLibraryForm->attributes=$_GET['SimpleLibraryForm'];
             // проверяем полученные данные
-            if ($simpleLibraryForm->validate())
-            {
-                $booksWithMinAuthors = Yii::app()->db->createCommand()
-                    ->select('books.name')
-                    ->from('books')
-                    ->join('booksauthors', 'books.id = booksauthors.booksid')
-                    ->group('books.name')
-                    ->having("count(books.name) >= {$simpleLibraryForm['authorsNumber']}")
-                    ->query()
-                    ->readAll();
+            if ($simpleLibraryForm->validate()) {
+                $booksWithMinAuthors = Book::getbooksWithMinAuthors($simpleLibraryForm['authorsNumber']);
             }
         }
         // рендерим представление
