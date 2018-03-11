@@ -25,6 +25,10 @@ class Book extends CActiveRecord
         );
     }
 
+    public function behaviors(){
+        return array('CSaveRelationsBehavior' => array('class' => 'application.components.CSaveRelationsBehavior'));
+    }
+    
     public static function getbooksWithMinAuthors($minAuthors)
     {
         return Yii::app()->db->createCommand()

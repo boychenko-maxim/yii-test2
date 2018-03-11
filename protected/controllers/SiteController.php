@@ -5,10 +5,10 @@ class SiteController extends CController
 	public function actionIndex()
 	{
 	    $authors = Author::model()->findAll();
-        $books = Book::model()->with('authors')->findAll();
         $simpleLibraryForm = new SimpleLibraryForm;
         $booksWithMinAuthors = array();
-        if(isset($_GET['SimpleLibraryForm']))
+		
+		if(isset($_GET['SimpleLibraryForm']))
         {
             // получаем данные от пользователя
             $simpleLibraryForm->attributes=$_GET['SimpleLibraryForm'];
@@ -17,6 +17,9 @@ class SiteController extends CController
                 $booksWithMinAuthors = Book::getbooksWithMinAuthors($simpleLibraryForm['authorsNumber']);
             }
         }
+        
+        $books = Book::model()->with('authors')->findAll();
+        
         // рендерим представление
         $this->render('index',array(
             'simpleLibraryForm'=>$simpleLibraryForm,
@@ -25,4 +28,11 @@ class SiteController extends CController
             'books' =>$books
         ));
 	}
+    
+    public function actionError()
+    {
+        if($error=Yii::app()->errorHandler->error) {
+            dd($error);
+        }
+    }
 }

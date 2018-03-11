@@ -12,9 +12,14 @@ class BookController extends CController
     {
         $bookEditForm = new BookEditForm();
         $bookDeleteForm = new BookDeleteForm();
-        $book = null;
-        $allAuthors = Author::model()->findAll();
+        $book = $this->initForms($bookEditForm, $bookDeleteForm);
+        foreach ($book->authors as $author) {      
+            $relations[] = $author['id'];
+        }
+        $deleteAuthor = new AuthorIdDeleteForm;
         $successfullEdit = false;
+        $successfullAuthorAdd = false;
+        $successfullAuthorDelete = false;
         $successfullDelete = false;
 
         if (isset($_POST['BookEditForm'])) {
@@ -22,45 +27,115 @@ class BookController extends CController
             $bookDeleteForm->attributes = $bookEditForm->attributes;
 
             if ($bookEditForm->validate()) {
-                $book = Book::model()->findByPk($bookEditForm->id);
                 $book->name = htmlspecialchars($bookEditForm->name);
+                $relations = array();
+                foreach ($book->authors as $i => $author) {
+                     if(isset($_POST['Author'][$i]) && !in_array($_POST['Author'][$i]['id'], $relations)) {       
+                        $relations[] = $_POST['Author'][$i]['id'];
+                     }
+                }            
+                $book->setRelationRecords('authors',$relations);
                 $book->save();
                 $successfullEdit = true;
-            } else {
-                $book = $this->initForms($bookEditForm, $bookDeleteForm);
             }
-
-        } /*else if (isset($_POST['BookDeleteForm'])) {
+        } else if (isset($_POST['AuthorIdAddForm'])) { 
+            $relations[] = $_POST['AuthorIdAddForm']['id'];
+            $book->setRelationRecords('authors',$relations);
+            $book->save();
+            $successfullAuthorAdd = true;
+        } else if (isset($_POST['AuthorIdDeleteForm'])) { 
+            if (count($relations) > 1) {
+                $relations = array_diff($relations, [$_POST['AuthorIdDeleteForm']['id']]);
+                $book->setRelationRecords('authors',$relations);
+                $book->save();
+                $successfullAuthorDelete = true;
+            } else {
+                $deleteAuthor->AddDeleteError();
+            }
+        } else if (isset($_POST['BookDeleteForm'])) {
             $bookDeleteForm->attributes=$_POST['BookDeleteForm'];
             $bookEditForm->attributes = $bookDeleteForm->attributes;
 
             if ($bookDeleteForm->validate()) {
-                $book = Book::model()->findByPk($bookDeleteForm->id);
+                $book->setRelationRecords('authors',array());
+                $book->save();
                 try {
                     $book->delete();
                     $successfullDelete = true;
                 } catch (Exception $ex) {
+                    //todo убрать
+                    dd($ex);
                     $bookDeleteForm->AddDeleteError();
                 }
             }
 
-        }*/ else if (isset($_GET['id'])) {
-            $book = $this->initForms($bookEditForm, $bookDeleteForm);
-        }
+        } 
         
         if ($successfullDelete) {
             $this->render('succesfullDelete');
         } else {
+            $allBookAuthorsNameById = array();
+            foreach ($book->authors as $author) {
+                $allBookAuthorsNameById[$author->id] = $author->name;
+            }
+            $allAuthors = Author::model()->findAll();
+            $allAddAuthorsNameById = null;
+            foreach ($allAuthors as $author) {
+                $allAuthorsNameById[$author->id] = $author->name;
+                if (!array_key_exists($author->id, $allBookAuthorsNameById)) {
+                    $allAddAuthorsNameById[$author->id] = $author->name;
+                }
+            }
+                    
             $this->render('index', array(
                 'book' => $book,
-                'allAuthors' => $allAuthors,
+                'allAuthorsNameById' => $allAuthorsNameById,
+                'allBookAuthorsNameById' => $allBookAuthorsNameById,
+                'allAddAuthorsNameById' => $allAddAuthorsNameById,
                 'bookEditForm' => $bookEditForm,
                 'bookDeleteForm' => $bookDeleteForm,
-                'successfullEdit' => $successfullEdit
+                'successfullEdit' => $successfullEdit,
+                'successfullAuthorAdd' => $successfullAuthorAdd,
+                'successfullAuthorDelete' => $successfullAuthorDelete,
+                'newAuthor' => new AuthorIdAddForm,
+                'deleteAuthor' => $deleteAuthor
             ));
         }
     }
 
+	public function actionAdd() {
+        $bookAddForm = new BookAddForm;
+        $successfullAdd = false;
+        
+         if (isset($_POST['BookAddForm'])) {
+            $bookAddForm->attributes = $_POST['BookAddForm'];
+            
+            if ($bookAddForm->validate()) {
+                $book = new Book;
+                $book->name = htmlspecialchars($bookAddForm->name);
+                $book->setRelationRecords('authors',[$_POST['AuthorIdAddForm']['id']]);
+                $book->save();
+                $successfullAdd = true;
+            }
+        }
+        
+		if ($successfullAdd) {
+            $this->render('succesfullAdd');
+        } else {
+            $allAuthors = Author::model()->findAll();
+            $allAddAuthorsNameById = null;
+            foreach ($allAuthors as $author) {
+                $allAuthorsNameById[$author->id] = $author->name;
+            }
+                    
+            $this->render('add', array(
+                'bookAddForm' => $bookAddForm,
+                'allAuthorsNameById' => $allAuthorsNameById,
+                'author' => new AuthorIdAddForm,
+            ));
+        }
+	}
+	
     private function initForms($bookEditForm, $bookDeleteForm)
     {
         $book = Book::model()->with('authors')->findByPk($_GET['id']);
@@ -68,5 +143,12 @@ class BookController extends CController
         $bookEditForm->name = $book->name;
         $bookDeleteForm->attributes = $bookEditForm->attributes;
         return $book;
+    }
+    
+    
+    public function actionError()
+    {
+        if($error=Yii::app()->errorHandler->error)
+            $this->render('error', $error);
     }
 }

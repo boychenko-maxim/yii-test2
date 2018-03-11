@@ -15,6 +15,9 @@ return array(
 
     // application components
     'components'=>array(
+        'errorHandler'=>array(
+            'errorAction'=>'site/error',
+        ),
         'log'=>array(
             'class'=>'CLogRouter',
             'routes'=>array(
@@ -30,10 +33,10 @@ return array(
             ),
         ),
         'db'=>array(
-            'connectionString' => 'mysql:host=localhost;dbname=simple_library',
+            'connectionString' => 'mysql:host=localhost;dbname=maximb74_library',
             'emulatePrepare' => true,
-            'username' => 'root',
-            'password' => '123456',
+            'username' => 'maximb74_library',
+            'password' => '6*d5hXQo',
             'charset' => 'utf8'
         ),
     )
